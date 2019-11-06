@@ -74,7 +74,7 @@ void TimerISR()
 			tasks[i].state = tasks[i].TickFct(tasks[i].state);
 			tasks[i].elapsedTime = 0;
 		}
-		tasks[i].elapsedTime += 100;
+		tasks[i].elapsedTime += 2;
 	}
 }
 
@@ -105,6 +105,7 @@ int TickFct_Speaker(int);
 
 unsigned char tempB_ThreeLEDS = 0x00;
 unsigned char tempB_BlinkingLEDS = 0x00;
+unsigned char tempB_Speaker = 0x00;
 
 
 typedef enum Three_States {Three_init, Three_Light1, Three_Light2, Three_Light0} Three_States;
@@ -130,18 +131,18 @@ int main(void) {
 	i++;
 	// CombineLEDS task
 	tasks[i].state = 0;
-	tasks[i].period = 100;
+	tasks[i].period = 2;
 	tasks[i].elapsedTime = tasks[i].period;
 	tasks[i].TickFct = &TickFct_CombineLEDS;
 	i++;
 	// Speaker task
 	tasks[i].state = Speaker_Off;
-	tasks[i].period = 200;
+	tasks[i].period = 2;
 	tasks[i].elapsedTime = tasks[i].period;
 	tasks[i].TickFct = &TickFct_Speaker;
 	
 
-	TimerSet(100);
+	TimerSet(2);
 	TimerOn();
     while (1) {
 	}
@@ -207,40 +208,31 @@ int TickFct_Speaker(int state){
 	unsigned char A2 = PINA & 0x04;
 	unsigned char B4;
 	int i;
-	
-	switch (state){
-		case Speaker_Off:
-			state = Speaker_On;
-			break;
-		case Speaker_On:
-			state = Speaker_Off;
-			break;
-	}
-	switch (state){
-		case Speaker_Off:
-			PORTB = PORTB & 0x0F;
-			break;
-		case Speaker_On:
-			if(~A2){
+	if(A2){
+		switch (state){
+			case Speaker_Off:
+				state = Speaker_On;
 				break;
-			}
-
-			for(i = 0; i < 1000; ++i){
-				B4 = PORTB & 0x10;
-				if(B4){
-					PORTB = PORTB & 0xEF;
-				}
-				else{
-					PORTB = PORTB | 0x10;
-				}
-			}
-			break;
+			case Speaker_On:
+				state = Speaker_Off;
+				break;
+		}
+		switch (state){
+			case Speaker_Off:
+				tempB_Speaker = 0x10;
+				break;
+			case Speaker_On:
+				tempB_Speaker = 0x00;
+				break;
+		}
 	}
-						
+	else{
+		tempB_Speaker = 0x00;	
+	}					
 }
 
 int TickFct_CombineLEDS (int state){
-	PORTB = (tempB_BlinkingLEDS | tempB_ThreeLEDS) | 0x10;
+	PORTB = tempB_BlinkingLEDS | tempB_ThreeLEDS | tempB_Speaker;
 	return state;
 }
 
